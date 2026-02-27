@@ -477,7 +477,13 @@ def read_article(article_id):
         ).fetchone()
         if not article:
             abort(404)
+        was_unread = not article["is_read"]
         conn.execute("UPDATE articles SET is_read=1 WHERE id=?", (article_id,))
+        if was_unread:
+            conn.execute(
+                "INSERT INTO reading_sessions (article_id, read_at) VALUES (?, ?)",
+                (article_id, datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            )
     return render_template("article.html", article=article)
 
 
