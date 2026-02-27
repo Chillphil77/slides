@@ -5,7 +5,7 @@ import hashlib
 import mimetypes
 import random
 import string
-from datetime import datetime
+from datetime import datetime, date, timedelta
 from urllib.parse import urljoin, urlparse
 
 import requests
@@ -97,6 +97,11 @@ def init_db():
                 api_key     TEXT,
                 credits     INTEGER DEFAULT 0,
                 created_at  TEXT    DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS reading_sessions (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                article_id  INTEGER,
+                read_at     TEXT    DEFAULT CURRENT_TIMESTAMP
             );
         """)
 
@@ -294,20 +299,92 @@ def fetch_article(url: str) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Gamification helpers
+# ---------------------------------------------------------------------------
+
+LEVELS = [
+    (0,    "Neuling",        "📗", "#6b7280"),
+    (100,  "Leser",          "📘", "#2563eb"),
+    (300,  "Enthusiast",     "📙", "#7c3aed"),
+    (700,  "Buchfresser",    "📕", "#dc2626"),
+    (1500, "Wissenshungrig", "🔥", "#d97706"),
+    (3000, "Experte",        "⭐", "#f59e0b"),
+    (6000, "Legende",        "👑", "#8b5cf6"),
+]
+
+ACHIEVEMENTS = [
+    ("first_save",    "Erster Schritt",   "📥", "Ersten Artikel gespeichert",         lambda s: s["total_saved"] >= 1),
+    ("first_read",    "Leser werden",     "👁️",  "Ersten Artikel gelesen",             lambda s: s["total_read"] >= 1),
+    ("reader_10",     "Fleißig",          "📚", "10 Artikel gelesen",                 lambda s: s["total_read"] >= 10),
+    ("reader_50",     "Buchclub",         "🏆", "50 Artikel gelesen",                 lambda s: s["total_read"] >= 50),
+    ("reader_100",    "Bibliothek",       "🎓", "100 Artikel gelesen",                lambda s: s["total_read"] >= 100),
+    ("saver_50",      "Sammler",          "💾", "50 Artikel gespeichert",             lambda s: s["total_saved"] >= 50),
+    ("streak_3",      "Auf Kurs",         "🔥", "3 Tage am Stück gelesen",            lambda s: s["streak"] >= 3),
+    ("streak_7",      "Wissensdurst",     "⚡", "7 Tage am Stück gelesen",            lambda s: s["streak"] >= 7),
+    ("streak_30",     "Unaufhaltsam",     "💫", "30 Tage am Stück gelesen",           lambda s: s["streak"] >= 30),
+    ("custom_topic",  "Entdecker",        "🧭", "Eigenes Thema hinzugefügt",          lambda s: s["custom_topics"] >= 1),
+    ("night_owl",     "Nachteule",        "🦉", "Nach 22 Uhr einen Artikel gelesen",  lambda s: s["night_reads"] >= 1),
+    ("speed_reader",  "Schnellleser",     "⚡", "5 Artikel an einem Tag gelesen",     lambda s: s["max_day_reads"] >= 5),
+]
+
+
+def _calculate_streak(conn) -> int:
+    rows = conn.execute(
+        "SELECT DISTINCT DATE(read_at) as d FROM reading_sessions ORDER BY d DESC"
+    ).fetchall()
+    if not rows:
+        return 0
+    days = {r["d"] for r in rows}
+    today_str = str(date.today())
+    yesterday_str = str(date.today() - timedelta(days=1))
+    # streak starts from today or yesterday
+    current = date.today() if today_str in days else (date.today() - timedelta(days=1) if yesterday_str in days else None)
+    if current is None:
+        return 0
+    streak = 0
+    while str(current) in days:
+        streak += 1
+        current -= timedelta(days=1)
+    return streak
+
+
+def _get_level_info(xp: int) -> dict:
+    idx = 0
+    for i, (threshold, *_) in enumerate(LEVELS):
+        if xp >= threshold:
+            idx = i
+    threshold, name, icon, color = LEVELS[idx]
+    if idx < len(LEVELS) - 1:
+        next_t = LEVELS[idx + 1][0]
+        progress = min(100, int((xp - threshold) / max(1, next_t - threshold) * 100))
+        xp_to_next = next_t - xp
+    else:
+        next_t = None
+        progress = 100
+        xp_to_next = 0
+    return {
+        "level": idx + 1,
+        "name": name,
+        "icon": icon,
+        "color": color,
+        "xp": xp,
+        "progress": progress,
+        "xp_to_next": xp_to_next,
+        "next_name": LEVELS[idx + 1][1] if idx < len(LEVELS) - 1 else None,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Routes – Pages
 # ---------------------------------------------------------------------------
 
 @app.route("/")
 def dashboard():
     with get_db() as conn:
-        total   = conn.execute("SELECT COUNT(*) FROM articles").fetchone()[0]
-        unread  = conn.execute("SELECT COUNT(*) FROM articles WHERE is_read=0").fetchone()[0]
-        starred = conn.execute("SELECT COUNT(*) FROM articles WHERE is_starred=1").fetchone()[0]
-        recent  = conn.execute(
+        recent = conn.execute(
             "SELECT * FROM articles ORDER BY saved_at DESC LIMIT 6"
         ).fetchall()
-    return render_template("dashboard.html",
-        total=total, unread=unread, starred=starred, recent=recent)
+    return render_template("dashboard.html", recent=recent)
 
 
 @app.route("/library")
@@ -496,7 +573,114 @@ def toggle_read(article_id):
             abort(404)
         new_val = 0 if row["is_read"] else 1
         conn.execute("UPDATE articles SET is_read=? WHERE id=?", (new_val, article_id))
+        if new_val == 1:
+            conn.execute(
+                "INSERT INTO reading_sessions (article_id, read_at) VALUES (?, ?)",
+                (article_id, datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            )
     return jsonify({"read": bool(new_val)})
+
+
+# ---------------------------------------------------------------------------
+# Routes – API (Stats / Gamification)
+# ---------------------------------------------------------------------------
+
+@app.route("/api/stats")
+def api_stats():
+    with get_db() as conn:
+        total_saved  = conn.execute("SELECT COUNT(*) FROM articles").fetchone()[0]
+        total_read   = conn.execute("SELECT COUNT(*) FROM articles WHERE is_read=1").fetchone()[0]
+        total_starred= conn.execute("SELECT COUNT(*) FROM articles WHERE is_starred=1").fetchone()[0]
+        reading_mins = conn.execute(
+            "SELECT COALESCE(SUM(reading_time),0) FROM articles WHERE is_read=1"
+        ).fetchone()[0]
+
+        # Daily reads – last 7 days
+        daily_raw = conn.execute("""
+            SELECT DATE(read_at) as d, COUNT(*) as n
+            FROM reading_sessions
+            WHERE read_at >= DATE('now','-6 days')
+            GROUP BY DATE(read_at)
+        """).fetchall()
+        days_map = {r["d"]: r["n"] for r in daily_raw}
+
+        # Top sources (by reads)
+        top_src = conn.execute("""
+            SELECT a.site_name, COUNT(*) as n
+            FROM reading_sessions rs
+            JOIN articles a ON a.id = rs.article_id
+            WHERE a.site_name != '' AND a.site_name IS NOT NULL
+            GROUP BY a.site_name
+            ORDER BY n DESC LIMIT 6
+        """).fetchall()
+
+        # Night reads (after 22:00 or before 05:00)
+        night_reads = conn.execute("""
+            SELECT COUNT(*) FROM reading_sessions
+            WHERE CAST(strftime('%H', read_at) AS INTEGER) >= 22
+               OR CAST(strftime('%H', read_at) AS INTEGER) < 5
+        """).fetchone()[0]
+
+        # Max reads in a single day
+        max_day = conn.execute("""
+            SELECT MAX(n) FROM (
+                SELECT COUNT(*) as n FROM reading_sessions GROUP BY DATE(read_at)
+            )
+        """).fetchone()[0] or 0
+
+        # Custom topics
+        custom_topics = conn.execute(
+            "SELECT COUNT(*) FROM topics WHERE is_custom=1 AND is_active=1"
+        ).fetchone()[0]
+
+        # Saved this week (Mon–Sun)
+        saved_week = conn.execute("""
+            SELECT COUNT(*) FROM articles
+            WHERE saved_at >= DATE('now','weekday 1','-7 days')
+        """).fetchone()[0]
+
+        streak = _calculate_streak(conn)
+
+    # Build 7-day chart data
+    today = date.today()
+    labels, data7 = [], []
+    day_names = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
+    for i in range(6, -1, -1):
+        d = today - timedelta(days=i)
+        labels.append(day_names[d.weekday()])
+        data7.append(days_map.get(str(d), 0))
+
+    # XP = 20 per read + 5 per saved
+    xp = total_read * 20 + total_saved * 5
+    level_info = _get_level_info(xp)
+
+    # Achievements
+    stats_ctx = {
+        "total_saved": total_saved, "total_read": total_read,
+        "streak": streak, "custom_topics": custom_topics,
+        "night_reads": night_reads, "max_day_reads": max_day,
+    }
+    achievements = [
+        {
+            "id": aid, "name": name, "icon": icon, "desc": desc,
+            "unlocked": cond(stats_ctx),
+        }
+        for aid, name, icon, desc, cond in ACHIEVEMENTS
+    ]
+
+    return jsonify({
+        "total_saved":    total_saved,
+        "total_read":     total_read,
+        "total_starred":  total_starred,
+        "reading_mins":   reading_mins,
+        "streak":         streak,
+        "saved_week":     saved_week,
+        "level":          level_info,
+        "achievements":   achievements,
+        "chart_labels":   labels,
+        "chart_data":     data7,
+        "top_sources":    [{"name": r["site_name"], "count": r["n"]} for r in top_src],
+    })
 
 
 # ---------------------------------------------------------------------------

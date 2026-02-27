@@ -5,54 +5,165 @@
 {% block content %}
 <div class="dashboard-wrap">
 
-  <!-- Greeting -->
+  <!-- ═══ GREETING + WEATHER ═══════════════════════════════ -->
   <section class="dash-greeting">
     <div class="dash-greeting-text">
       <h1 class="dash-hello">Hallo, <span class="username-shine" id="greetName">Leser</span> 👋</h1>
       <p class="dash-sub">Schön, dass du wieder da bist. Was liest du heute?</p>
     </div>
-    <!-- Weather + Date widget -->
     <div class="weather-widget" id="weatherWidget">
       <div class="weather-date" id="weatherDate"></div>
       <div class="weather-info" id="weatherInfo">
         <span class="weather-icon" id="weatherIcon">⏳</span>
-        <span class="weather-temp" id="weatherTemp">…</span>
-        <span class="weather-desc" id="weatherDesc">Wetter wird geladen</span>
+        <span class="weather-temp" id="weatherTemp">–</span>
+        <span class="weather-desc" id="weatherDesc">wird geladen…</span>
       </div>
     </div>
   </section>
 
-  <!-- Stats row -->
+  <!-- ═══ GAMIFICATION ROW ══════════════════════════════════ -->
+  <section class="gami-row" id="gamiRow">
+
+    <!-- Streak -->
+    <div class="gami-card gami-streak">
+      <div class="streak-fire" id="streakFire">🔥</div>
+      <div class="streak-number" id="streakNumber">–</div>
+      <div class="streak-label">Tage-Streak</div>
+      <div class="streak-sub" id="streakSub">Lies heute um fortzuführen</div>
+    </div>
+
+    <!-- Level & XP -->
+    <div class="gami-card gami-level">
+      <div class="level-icon" id="levelIcon">📗</div>
+      <div class="level-info">
+        <div class="level-badge-row">
+          <span class="level-num" id="levelNum">Lv. 1</span>
+          <span class="level-name" id="levelName">Neuling</span>
+        </div>
+        <div class="xp-bar-wrap">
+          <div class="xp-bar" id="xpBar" style="width:0%"></div>
+        </div>
+        <div class="xp-label" id="xpLabel">0 XP · nächstes Level: Leser</div>
+      </div>
+    </div>
+
+    <!-- Weekly goal -->
+    <div class="gami-card gami-goal">
+      <div class="goal-ring-wrap">
+        <svg class="goal-ring" viewBox="0 0 44 44">
+          <circle class="goal-ring-bg"   cx="22" cy="22" r="18"/>
+          <circle class="goal-ring-fill" cx="22" cy="22" r="18"
+            id="goalRingFill"
+            stroke-dasharray="113.1"
+            stroke-dashoffset="113.1"/>
+        </svg>
+        <div class="goal-ring-text">
+          <span class="goal-current" id="goalCurrent">0</span>
+          <span class="goal-sep">/</span>
+          <span class="goal-target" id="goalTarget">5</span>
+        </div>
+      </div>
+      <div class="goal-info">
+        <div class="goal-title">Wochenziel</div>
+        <div class="goal-sub">Artikel gelesen</div>
+        <button class="goal-edit-btn" id="goalEditBtn">Ziel ändern</button>
+      </div>
+    </div>
+
+    <!-- Reading time -->
+    <div class="gami-card gami-time">
+      <div class="time-icon">⏱️</div>
+      <div class="time-number" id="timeNumber">–</div>
+      <div class="time-label">Minuten gelesen</div>
+      <div class="time-sub" id="timeSub">–</div>
+    </div>
+
+  </section>
+
+  <!-- ═══ STATS ROW ═════════════════════════════════════════ -->
   <section class="dash-stats">
     <div class="stat-card">
-      <div class="stat-value">{{ total }}</div>
-      <div class="stat-label">Gespeicherte Artikel</div>
+      <div class="stat-icon">📥</div>
+      <div class="stat-value" id="statSaved">–</div>
+      <div class="stat-label">Gespeichert</div>
     </div>
     <div class="stat-card stat-card--accent">
-      <div class="stat-value">{{ unread }}</div>
+      <div class="stat-icon">📖</div>
+      <div class="stat-value" id="statUnread">–</div>
       <div class="stat-label">Ungelesen</div>
     </div>
-    <div class="stat-card stat-card--star">
-      <div class="stat-value">{{ starred }}</div>
-      <div class="stat-label">Markiert</div>
-    </div>
     <div class="stat-card stat-card--green">
-      <div class="stat-value">{{ total - unread }}</div>
+      <div class="stat-icon">✅</div>
+      <div class="stat-value" id="statRead">–</div>
       <div class="stat-label">Gelesen</div>
+    </div>
+    <div class="stat-card stat-card--star">
+      <div class="stat-icon">⭐</div>
+      <div class="stat-value" id="statStarred">–</div>
+      <div class="stat-label">Markiert</div>
     </div>
   </section>
 
-  <!-- Quick Add -->
+  <!-- ═══ CHARTS ROW ════════════════════════════════════════ -->
+  <section class="charts-row">
+
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div>
+          <div class="chart-title">Letzte 7 Tage</div>
+          <div class="chart-sub">Gelesene Artikel pro Tag</div>
+        </div>
+        <div class="chart-total-badge" id="weekTotalBadge">0 diese Woche</div>
+      </div>
+      <div class="chart-canvas-wrap">
+        <canvas id="barChart"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card chart-card--donut">
+      <div class="chart-card-header">
+        <div>
+          <div class="chart-title">Top Quellen</div>
+          <div class="chart-sub">Meistgelesene Seiten</div>
+        </div>
+      </div>
+      <div class="donut-wrap">
+        <div class="donut-canvas-wrap">
+          <canvas id="donutChart"></canvas>
+        </div>
+        <div class="donut-legend" id="donutLegend"></div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ═══ ACHIEVEMENTS ══════════════════════════════════════ -->
+  <section class="achievements-section">
+    <div class="dash-section-header">
+      <div>
+        <div class="dash-section-title">Errungenschaften</div>
+        <div class="dash-section-sub" id="achieveProgress">Wird geladen…</div>
+      </div>
+    </div>
+    <div class="achievements-grid" id="achievementsGrid">
+      <!-- filled by JS -->
+      <div class="achieve-skeleton"></div>
+      <div class="achieve-skeleton"></div>
+      <div class="achieve-skeleton"></div>
+      <div class="achieve-skeleton"></div>
+    </div>
+  </section>
+
+  <!-- ═══ QUICK ADD ═════════════════════════════════════════ -->
   <section class="dash-section">
-    <h2 class="dash-section-title">Artikel schnell speichern</h2>
+    <div class="dash-section-title">Artikel schnell speichern</div>
     <div class="quick-add-bar">
       <input
         id="dashUrlInput"
         class="url-input"
         type="url"
         placeholder="URL einfügen und Enter drücken…"
-        autocomplete="off"
-        spellcheck="false"
+        autocomplete="off" spellcheck="false"
       />
       <button id="dashAddBtn" class="add-btn" title="Speichern">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -63,16 +174,16 @@
     <div id="dashStatus" class="add-status" aria-live="polite"></div>
   </section>
 
-  <!-- Recent articles -->
+  <!-- ═══ RECENT ARTICLES ═══════════════════════════════════ -->
   {% if recent %}
   <section class="dash-section">
     <div class="dash-section-header">
-      <h2 class="dash-section-title">Zuletzt gespeichert</h2>
+      <div class="dash-section-title">Zuletzt gespeichert</div>
       <a href="/library" class="dash-see-all">Alle anzeigen →</a>
     </div>
     <div class="article-grid">
       {% for a in recent %}
-      <article class="card {% if a.is_read %}card--read{% endif %}" data-id="{{ a.id }}">
+      <article class="card {% if a.is_read %}card--read{% endif %}">
         {% if a.cover_image %}
         <a class="card-cover-link" href="/article/{{ a.id }}">
           <div class="card-cover" style="background-image:url('/image/{{ a.cover_image }}')"></div>
@@ -81,15 +192,12 @@
         <div class="card-body">
           <div class="card-meta">
             <span class="card-site">{{ a.site_name or '' }}</span>
-            {% if a.date %}<span class="card-date">{{ a.date }}</span>{% endif %}
-            <span class="card-time">{{ a.reading_time }} Min.</span>
+            {% if a.date %}<span>{{ a.date }}</span>{% endif %}
+            <span>{{ a.reading_time }} Min.</span>
           </div>
           <a class="card-title-link" href="/article/{{ a.id }}">
             <h2 class="card-title">{{ a.title }}</h2>
           </a>
-          {% if a.excerpt %}
-          <p class="card-excerpt">{{ a.excerpt }}</p>
-          {% endif %}
         </div>
       </article>
       {% endfor %}
@@ -102,34 +210,10 @@
         <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
         <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
       </svg>
-      <p>Noch keine Artikel gespeichert.<br>Füge oben eine URL ein um zu starten.</p>
-      <a href="/library" class="btn btn-primary" style="margin-top:.5rem">Zur Bibliothek</a>
+      <p>Noch keine Artikel. Füge unten eine URL ein!</p>
     </div>
   </section>
   {% endif %}
-
-  <!-- Quick nav tiles -->
-  <section class="dash-section">
-    <h2 class="dash-section-title">Schnellzugriff</h2>
-    <div class="quick-nav-grid">
-      <a href="/library?filter=unread" class="quick-nav-tile">
-        <span class="qn-icon">📚</span>
-        <span class="qn-label">Ungelesen ({{ unread }})</span>
-      </a>
-      <a href="/library?filter=starred" class="quick-nav-tile">
-        <span class="qn-icon">⭐</span>
-        <span class="qn-label">Markiert ({{ starred }})</span>
-      </a>
-      <a href="/discover" class="quick-nav-tile">
-        <span class="qn-icon">🧭</span>
-        <span class="qn-label">Entdecken</span>
-      </a>
-      <a href="/pricing" class="quick-nav-tile quick-nav-tile--pro">
-        <span class="qn-icon">✨</span>
-        <span class="qn-label">Pläne & Preise</span>
-      </a>
-    </div>
-  </section>
 
 </div>
 
@@ -138,8 +222,29 @@
   <div class="spinner"></div>
   <p>Artikel wird gespeichert…</p>
 </div>
+
+<!-- Goal modal -->
+<div class="modal-overlay hidden" id="goalModal">
+  <div class="modal">
+    <h3 class="modal-title">Wochenziel anpassen</h3>
+    <p class="modal-sub">Wie viele Artikel pro Woche möchtest du lesen?</p>
+    <div class="goal-presets">
+      <button class="goal-preset-btn" data-val="3">3</button>
+      <button class="goal-preset-btn" data-val="5">5</button>
+      <button class="goal-preset-btn" data-val="7">7</button>
+      <button class="goal-preset-btn" data-val="10">10</button>
+      <button class="goal-preset-btn" data-val="14">14</button>
+    </div>
+    <input type="number" id="goalInput" class="modal-input" min="1" max="100" value="5" style="margin-top:.75rem"/>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="goalSaveBtn">Speichern</button>
+      <button class="btn btn-ghost"   id="goalCancelBtn">Abbrechen</button>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="/static/js/dashboard.js"></script>
 {% endblock %}
