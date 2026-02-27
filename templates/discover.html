@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% set active_page = "discover" %}
+{% block title %}Entdecken – Noozly{% endblock %}
+
+{% block content %}
+<div class="discover-wrap">
+
+  <!-- Header -->
+  <div class="discover-header">
+    <div>
+      <h1 class="page-title">Entdecken</h1>
+      <p class="page-sub">Deine Themen – zieh sie um, um die Reihenfolge anzupassen.</p>
+    </div>
+    <div class="discover-header-actions">
+      <button class="icon-btn" id="addTopicBtn" title="Eigenes Thema hinzufügen">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+      </button>
+      <button class="icon-btn icon-btn--active" id="editModeBtn" title="Bearbeitungsmodus">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Topics grid (Sortable) -->
+  <div class="topics-grid" id="topicsGrid">
+    {% for t in topics %}
+    <div class="topic-card" data-id="{{ t.id }}" data-custom="{{ t.is_custom }}"
+         style="--topic-color: {{ t.color }}">
+      <div class="topic-drag-handle" title="Ziehen zum Sortieren">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="8" y1="6"  x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
+          <line x1="8" y1="18" x2="21" y2="18"/>
+          <line x1="3" y1="6"  x2="3.01" y2="6"/>
+          <line x1="3" y1="12" x2="3.01" y2="12"/>
+          <line x1="3" y1="18" x2="3.01" y2="18"/>
+        </svg>
+      </div>
+      <div class="topic-icon">{{ t.icon }}</div>
+      <div class="topic-name">{{ t.name }}</div>
+      {% if t.is_custom %}
+      <button class="topic-delete-btn" data-id="{{ t.id }}" title="Thema entfernen">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Empty state if no topics -->
+  {% if not topics %}
+  <div class="empty-state">
+    <p>Noch keine Themen. Füge dein erstes Thema hinzu!</p>
+    <button class="btn btn-primary" id="addTopicBtnEmpty">Thema hinzufügen</button>
+  </div>
+  {% endif %}
+
+  <!-- Info box -->
+  <div class="discover-info">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"/>
+      <line x1="12" y1="8" x2="12" y2="12"/>
+      <line x1="12" y1="16" x2="12.01" y2="16"/>
+    </svg>
+    <span>Ziehe Themen, um die Reihenfolge anzupassen. Klicke auf ein Thema um Artikel zu diesem Thema zu sehen (kommt bald).</span>
+  </div>
+
+</div>
+
+<!-- Add Topic Modal -->
+<div class="modal-overlay hidden" id="addTopicModal">
+  <div class="modal">
+    <h3 class="modal-title">Eigenes Thema hinzufügen</h3>
+    <div class="modal-field">
+      <label class="modal-label">Name</label>
+      <input type="text" id="topicName" class="modal-input" placeholder="z.B. Finanzen" maxlength="30" />
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">Icon (Emoji)</label>
+      <div class="emoji-picker-row">
+        <input type="text" id="topicIcon" class="modal-input modal-input--emoji" placeholder="💡" maxlength="4" value="📌"/>
+        <div class="emoji-suggestions">
+          <span class="emoji-opt" data-emoji="💰">💰</span>
+          <span class="emoji-opt" data-emoji="🌱">🌱</span>
+          <span class="emoji-opt" data-emoji="🎵">🎵</span>
+          <span class="emoji-opt" data-emoji="📷">📷</span>
+          <span class="emoji-opt" data-emoji="🍕">🍕</span>
+          <span class="emoji-opt" data-emoji="✈️">✈️</span>
+          <span class="emoji-opt" data-emoji="📱">📱</span>
+          <span class="emoji-opt" data-emoji="🧠">🧠</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">Farbe</label>
+      <div class="color-picker-row">
+        <input type="color" id="topicColor" value="#2563eb" class="color-input" />
+        <div class="color-presets">
+          <span class="color-preset" style="background:#2563eb" data-color="#2563eb"></span>
+          <span class="color-preset" style="background:#7c3aed" data-color="#7c3aed"></span>
+          <span class="color-preset" style="background:#059669" data-color="#059669"></span>
+          <span class="color-preset" style="background:#dc2626" data-color="#dc2626"></span>
+          <span class="color-preset" style="background:#d97706" data-color="#d97706"></span>
+          <span class="color-preset" style="background:#0891b2" data-color="#0891b2"></span>
+          <span class="color-preset" style="background:#db2777" data-color="#db2777"></span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="topicSaveBtn">Hinzufügen</button>
+      <button class="btn btn-ghost" id="topicCancelBtn">Abbrechen</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.3/Sortable.min.js"></script>
+<script src="/static/js/discover.js"></script>
+{% endblock %}

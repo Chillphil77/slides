@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Noozly{% endblock %}</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <link rel="manifest" href="/static/manifest.json" />
+  <meta name="theme-color" content="#1a1a2e" />
+  {% block head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}" id="appBody">
+
+  <!-- ── Navigation ── -->
+  <nav class="app-nav">
+    <div class="nav-inner">
+      <a href="/" class="nav-brand">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+        </svg>
+        <span class="brand-name">Noozly</span>
+      </a>
+
+      <div class="nav-links">
+        <a href="/"         class="nav-link {% if active_page == 'dashboard' %}active{% endif %}" title="Dashboard">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+            <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+          </svg>
+          <span>Dashboard</span>
+        </a>
+        <a href="/library"  class="nav-link {% if active_page == 'library' %}active{% endif %}" title="Bibliothek">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+          </svg>
+          <span>Bibliothek</span>
+        </a>
+        <a href="/discover" class="nav-link {% if active_page == 'discover' %}active{% endif %}" title="Entdecken">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+          </svg>
+          <span>Entdecken</span>
+        </a>
+        <a href="/faq"      class="nav-link {% if active_page == 'faq' %}active{% endif %}" title="FAQ">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          <span>FAQ</span>
+        </a>
+      </div>
+
+      <div class="nav-right">
+        <!-- Username with shine animation -->
+        <span class="nav-username" id="navUsername" title="Benutzername ändern">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+          <span id="usernameText">Gast</span>
+        </span>
+
+        <!-- Pricing link -->
+        <a href="/pricing" class="nav-upgrade-btn {% if active_page == 'pricing' %}active{% endif %}" title="Pläne ansehen">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          </svg>
+          Pro
+        </a>
+
+        <!-- Dark mode toggle -->
+        <button class="nav-icon-btn" id="themeToggle" title="Hell/Dunkel">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="themeIcon">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1"  x2="12" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22"  y1="4.22"   x2="5.64"  y2="5.64"/>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1"  y1="12" x2="3"  y2="12"/>
+            <line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22"  y1="19.78" x2="5.64"  y2="18.36"/>
+            <line x1="18.36" y1="5.64"  x2="19.78" y2="4.22"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── Page content ── -->
+  <div class="page-content">
+    {% block content %}{% endblock %}
+  </div>
+
+  <!-- ── Username modal ── -->
+  <div class="modal-overlay hidden" id="usernameModal">
+    <div class="modal">
+      <h3 class="modal-title">Wie heißt du?</h3>
+      <p class="modal-sub">Dein Name wird nur lokal gespeichert.</p>
+      <input
+        type="text"
+        id="usernameInput"
+        class="modal-input"
+        placeholder="Dein Name…"
+        maxlength="30"
+        autocomplete="off"
+      />
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="usernameSave">Speichern</button>
+        <button class="btn btn-ghost" id="usernameCancel">Abbrechen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Base scripts ── -->
+  <script>
+    // Theme
+    (function(){
+      const t = localStorage.getItem('theme');
+      if (t === 'dark') document.getElementById('appBody').classList.add('dark');
+    })();
+  </script>
+  <script src="/static/js/base.js"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

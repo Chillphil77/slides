@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+{% set active_page = "admin" %}
+{% block title %}Admin – Noozly{% endblock %}
+
+{% block content %}
+<div class="admin-wrap">
+
+  <div class="admin-header">
+    <h1 class="page-title">Admin Dashboard</h1>
+    <p class="page-sub admin-note">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      Umsatz-Analytics, App Store-Einnahmen und App Store Promo-Codes → verwalte diese direkt im
+      <a href="https://appstoreconnect.apple.com" target="_blank" rel="noopener">App Store Connect</a>.
+      Diese Ansicht zeigt Web-Metriken und Nutzer-Daten.
+    </p>
+  </div>
+
+  <!-- Stats overview -->
+  <section class="admin-section">
+    <h2 class="admin-section-title">Übersicht</h2>
+    <div class="admin-stats-grid">
+      <div class="admin-stat">
+        <div class="admin-stat-value">{{ total_articles }}</div>
+        <div class="admin-stat-label">Gespeicherte Artikel</div>
+      </div>
+      <div class="admin-stat">
+        <div class="admin-stat-value">{{ read_articles }}</div>
+        <div class="admin-stat-label">Gelesene Artikel</div>
+      </div>
+      <div class="admin-stat">
+        <div class="admin-stat-value">{{ total_users }}</div>
+        <div class="admin-stat-label">Registrierte Nutzer</div>
+      </div>
+      <div class="admin-stat">
+        <div class="admin-stat-value">{{ total_coupons }}</div>
+        <div class="admin-stat-label">Coupon-Codes</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Coupon management -->
+  <section class="admin-section">
+    <div class="admin-section-header">
+      <h2 class="admin-section-title">Coupon-Codes</h2>
+      <button class="btn btn-primary btn-sm" id="newCouponBtn">+ Neuen Code erstellen</button>
+    </div>
+
+    <!-- New coupon form (hidden) -->
+    <div class="coupon-form hidden" id="couponForm">
+      <div class="coupon-form-grid">
+        <div class="form-field">
+          <label class="form-label">Code (leer = automatisch)</label>
+          <input type="text" id="couponCode" class="form-input" placeholder="z.B. WELCOME20" maxlength="30"/>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Rabatt (%)</label>
+          <input type="number" id="couponDiscount" class="form-input" value="20" min="1" max="100"/>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Plan</label>
+          <select id="couponPlan" class="form-input">
+            <option value="lifetime">Lifetime Deal</option>
+            <option value="premium">Premium Deluxe</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Max. Verwendungen</label>
+          <input type="number" id="couponMaxUses" class="form-input" value="1" min="1"/>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Gültig bis (optional)</label>
+          <input type="date" id="couponValidUntil" class="form-input"/>
+        </div>
+      </div>
+      <div class="coupon-form-actions">
+        <button class="btn btn-primary" id="couponSaveBtn">Code erstellen</button>
+        <button class="btn btn-ghost" id="couponCancelBtn">Abbrechen</button>
+      </div>
+      <div id="couponStatus" class="add-status" aria-live="polite"></div>
+    </div>
+
+    <!-- Coupon list -->
+    {% if coupons %}
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Rabatt</th>
+            <th>Plan</th>
+            <th>Verwendet</th>
+            <th>Max. Nutzungen</th>
+            <th>Gültig bis</th>
+            <th>Erstellt</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="couponTableBody">
+          {% for c in coupons %}
+          <tr data-id="{{ c.id }}">
+            <td><code class="coupon-code-badge">{{ c.code }}</code></td>
+            <td>{{ c.discount_pct }}%</td>
+            <td>
+              {% if c.plan == 'lifetime' %}
+              <span class="badge badge--lifetime">Lifetime</span>
+              {% else %}
+              <span class="badge badge--premium">Premium</span>
+              {% endif %}
+            </td>
+            <td>{{ c.uses }}</td>
+            <td>{{ c.max_uses }}</td>
+            <td>{{ c.valid_until or '—' }}</td>
+            <td>{{ c.created_at[:10] }}</td>
+            <td>
+              <button class="btn-danger-sm coupon-delete-btn" data-id="{{ c.id }}" title="Löschen">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="admin-empty">Noch keine Coupon-Codes erstellt.</div>
+    {% endif %}
+  </section>
+
+  <!-- User list -->
+  <section class="admin-section">
+    <div class="admin-section-header">
+      <h2 class="admin-section-title">Nutzer ({{ total_users }})</h2>
+      <button class="btn btn-primary btn-sm" id="newUserBtn">+ Nutzer hinzufügen</button>
+    </div>
+
+    <!-- New user form (hidden) -->
+    <div class="coupon-form hidden" id="userForm">
+      <div class="coupon-form-grid">
+        <div class="form-field">
+          <label class="form-label">Benutzername</label>
+          <input type="text" id="newUsername" class="form-input" placeholder="Max Mustermann"/>
+        </div>
+        <div class="form-field">
+          <label class="form-label">E-Mail</label>
+          <input type="email" id="newEmail" class="form-input" placeholder="max@beispiel.de"/>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Plan</label>
+          <select id="newPlan" class="form-input">
+            <option value="free">Free</option>
+            <option value="lifetime">Lifetime</option>
+            <option value="premium">Premium Deluxe</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label class="form-label">KI-Credits</label>
+          <input type="number" id="newCredits" class="form-input" value="0" min="0"/>
+        </div>
+      </div>
+      <div class="coupon-form-actions">
+        <button class="btn btn-primary" id="userSaveBtn">Nutzer hinzufügen</button>
+        <button class="btn btn-ghost" id="userCancelBtn">Abbrechen</button>
+      </div>
+      <div id="userStatus" class="add-status" aria-live="polite"></div>
+    </div>
+
+    {% if users %}
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>E-Mail</th>
+            <th>Plan</th>
+            <th>KI-Credits</th>
+            <th>Seit</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="userTableBody">
+          {% for u in users %}
+          <tr data-id="{{ u.id }}">
+            <td>{{ u.username or '—' }}</td>
+            <td>{{ u.email or '—' }}</td>
+            <td>
+              {% if u.plan == 'lifetime' %}
+              <span class="badge badge--lifetime">Lifetime</span>
+              {% elif u.plan == 'premium' %}
+              <span class="badge badge--premium">Premium</span>
+              {% else %}
+              <span class="badge badge--free">Free</span>
+              {% endif %}
+            </td>
+            <td>{{ u.credits }}</td>
+            <td>{{ u.created_at[:10] }}</td>
+            <td>
+              <button class="btn-danger-sm user-delete-btn" data-id="{{ u.id }}" title="Löschen">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="admin-empty">Noch keine Nutzer registriert.</div>
+    {% endif %}
+  </section>
+
+  <!-- App Store Connect info -->
+  <section class="admin-section">
+    <h2 class="admin-section-title">App Store Connect (iOS)</h2>
+    <div class="appstore-info-grid">
+      <a href="https://appstoreconnect.apple.com/analytics" target="_blank" rel="noopener" class="appstore-link-card">
+        <span class="als-icon">📊</span>
+        <div>
+          <strong>Analytics</strong>
+          <small>Downloads, Active Devices, Sessions, Retention</small>
+        </div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+          <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+        </svg>
+      </a>
+      <a href="https://appstoreconnect.apple.com/apps" target="_blank" rel="noopener" class="appstore-link-card">
+        <span class="als-icon">💰</span>
+        <div>
+          <strong>Sales & Trends</strong>
+          <small>Umsatz, Abonnements, In-App-Käufe</small>
+        </div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+          <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+        </svg>
+      </a>
+      <a href="https://appstoreconnect.apple.com/apps" target="_blank" rel="noopener" class="appstore-link-card">
+        <span class="als-icon">🎟️</span>
+        <div>
+          <strong>Promo-Codes</strong>
+          <small>App Store Promo-Codes für kostenlose Downloads</small>
+        </div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+          <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+        </svg>
+      </a>
+      <a href="https://appstoreconnect.apple.com/apps" target="_blank" rel="noopener" class="appstore-link-card">
+        <span class="als-icon">⭐</span>
+        <div>
+          <strong>Ratings & Reviews</strong>
+          <small>Nutzerbewertungen und -rezensionen verwalten</small>
+        </div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+          <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+        </svg>
+      </a>
+    </div>
+  </section>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/admin.js"></script>
+{% endblock %}

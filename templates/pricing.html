@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+{% set active_page = "pricing" %}
+{% block title %}Pläne & Preise – Noozly{% endblock %}
+
+{% block content %}
+<div class="pricing-wrap">
+
+  <div class="pricing-header">
+    <h1 class="page-title">Pläne & Preise</h1>
+    <p class="page-sub">Wähle den Plan, der zu dir passt. Jederzeit kündbar.</p>
+  </div>
+
+  <div class="pricing-grid">
+
+    <!-- FREE -->
+    <div class="plan-card">
+      <div class="plan-badge plan-badge--free">Kostenlos</div>
+      <div class="plan-icon">📖</div>
+      <h2 class="plan-name">Free</h2>
+      <div class="plan-price">
+        <span class="plan-amount">0 €</span>
+        <span class="plan-period">für immer</span>
+      </div>
+      <p class="plan-desc">Perfekt zum Ausprobieren. Alle Basisfunktionen inklusive.</p>
+      <ul class="plan-features">
+        <li class="feat feat--yes">Bis zu 100 Artikel speichern</li>
+        <li class="feat feat--yes">Offline-Lesemodus</li>
+        <li class="feat feat--yes">Artikel markieren &amp; organisieren</li>
+        <li class="feat feat--yes">Reader-Modus mit Schriftgrößen</li>
+        <li class="feat feat--yes">Hell-/Dunkelmodus</li>
+        <li class="feat feat--no">Keine KI-Funktionen</li>
+        <li class="feat feat--no">Kein BYOK-Support</li>
+        <li class="feat feat--no">Kein Priority-Support</li>
+      </ul>
+      <button class="btn btn-ghost btn-block" disabled>Aktueller Plan</button>
+    </div>
+
+    <!-- LIFETIME -->
+    <div class="plan-card plan-card--featured">
+      <div class="plan-badge plan-badge--lifetime">Beliebteste Wahl ⭐</div>
+      <div class="plan-icon">🚀</div>
+      <h2 class="plan-name">Lifetime Deal</h2>
+      <div class="plan-price">
+        <span class="plan-amount">49 €</span>
+        <span class="plan-period">einmalig</span>
+      </div>
+      <p class="plan-desc">Einmal zahlen, für immer nutzen. Voller Zugang zu allen Features.</p>
+
+      <!-- Important BYOK note -->
+      <div class="byok-note">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <div>
+          <strong>BYOK – Bring Your Own Key</strong><br>
+          <small>KI-Funktionen nutzt du mit deinem eigenen API-Schlüssel (z.B. OpenAI).
+          <strong>Keine KI-Credits im Lieferumfang</strong> – du zahlst nur die tatsächlichen API-Kosten direkt beim Anbieter.</small>
+        </div>
+      </div>
+
+      <ul class="plan-features">
+        <li class="feat feat--yes"><strong>Unbegrenzte</strong> Artikel speichern</li>
+        <li class="feat feat--yes">Offline-Lesemodus</li>
+        <li class="feat feat--yes">Alle jetzigen &amp; zukünftigen Features</li>
+        <li class="feat feat--yes">BYOK: KI mit eigenem API-Schlüssel</li>
+        <li class="feat feat--yes">Artikel-Zusammenfassung (via BYOK)</li>
+        <li class="feat feat--yes">Priority-Support</li>
+        <li class="feat feat--yes">Keine monatlichen Gebühren</li>
+        <li class="feat feat--no">Keine inkludierten KI-Credits</li>
+      </ul>
+      <a href="#" class="btn btn-primary btn-block" id="lifetimeCta">Jetzt kaufen – 49 €</a>
+      <p class="plan-note">Einmalige Zahlung · Kein Abo · Für immer gültig</p>
+    </div>
+
+    <!-- PREMIUM DELUXE -->
+    <div class="plan-card plan-card--deluxe">
+      <div class="plan-badge plan-badge--deluxe">Premium ✨</div>
+      <div class="plan-icon">💎</div>
+      <h2 class="plan-name">Premium Deluxe</h2>
+      <div class="plan-price">
+        <span class="plan-amount">7,99 €</span>
+        <span class="plan-period">/ Monat</span>
+      </div>
+      <p class="plan-desc">Voller KI-Power ohne eigenen API-Schlüssel. Einfach lesen, wir kümmern uns um den Rest.</p>
+
+      <!-- Credits note -->
+      <div class="credits-note">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+        </svg>
+        <div>
+          <strong>50 KI-Credits / Monat inkludiert</strong><br>
+          <small>Nutze KI-Zusammenfassungen &amp; Übersetzungen ohne eigenen API-Schlüssel.
+          Jede Zusammenfassung kostet ~1 Credit.</small>
+        </div>
+      </div>
+
+      <ul class="plan-features">
+        <li class="feat feat--yes"><strong>Unbegrenzte</strong> Artikel speichern</li>
+        <li class="feat feat--yes">Offline-Lesemodus</li>
+        <li class="feat feat--yes">Alle Features des Lifetime-Deals</li>
+        <li class="feat feat--yes"><strong>50 KI-Credits / Monat</strong> inkludiert</li>
+        <li class="feat feat--yes">KI-Zusammenfassungen ohne BYOK</li>
+        <li class="feat feat--yes">KI-Übersetzungen (bald)</li>
+        <li class="feat feat--yes">Priority-Support &amp; Early Access</li>
+        <li class="feat feat--yes">Credits monatlich erneuert</li>
+      </ul>
+      <a href="#" class="btn btn-deluxe btn-block" id="deluxeCta">Premium Deluxe starten</a>
+      <p class="plan-note">Jederzeit kündbar · Abrechnung über App Store</p>
+    </div>
+
+  </div>
+
+  <!-- Feature comparison note -->
+  <div class="pricing-disclaimer">
+    <h3>Wichtige Hinweise</h3>
+    <ul>
+      <li>
+        <strong>Lifetime Deal:</strong> KI-Funktionen (Zusammenfassungen etc.) sind verfügbar,
+        aber erfordern deinen eigenen API-Schlüssel (BYOK). Du hast vollständige Kontrolle über
+        deine Daten und Kosten. Keine versteckten Gebühren.
+      </li>
+      <li>
+        <strong>Premium Deluxe:</strong> Wird aktiviert, sobald die KI-Integration live ist
+        (kommt bald). Bis dahin gilt der günstigere Early-Bird-Preis.
+      </li>
+      <li>
+        <strong>Abrechnung:</strong> Alle Zahlungen laufen sicher über den Apple App Store.
+        Keine Kreditkartendaten werden bei uns gespeichert.
+      </li>
+      <li>
+        <strong>Kündigung:</strong> Monatliche Abos können jederzeit in den iPhone-Einstellungen
+        → Apple ID → Abonnements gekündigt werden.
+      </li>
+    </ul>
+  </div>
+
+  <!-- Tutorial teaser with animated border -->
+  <div class="tutorial-teaser-wrap">
+    <div class="tutorial-teaser">
+      <div class="tutorial-teaser-inner">
+        <span class="tutorial-icon">🎓</span>
+        <div>
+          <h3>Neu bei Noozly?</h3>
+          <p>Unser interaktives Tutorial zeigt dir in 5 Minuten alle wichtigen Funktionen.</p>
+        </div>
+        <a href="#tutorial" class="btn btn-primary btn-sm" id="startTutorialBtn">Tutorial starten</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Tutorial Modal -->
+<div class="modal-overlay hidden" id="tutorialModal">
+  <div class="tutorial-modal">
+    <div class="tutorial-modal-inner">
+      <button class="modal-close-btn" id="tutorialClose">✕</button>
+
+      <div class="tutorial-steps" id="tutorialSteps">
+        <!-- Step 1 -->
+        <div class="tutorial-step active" data-step="1">
+          <div class="tutorial-step-icon">📖</div>
+          <h3>Willkommen bei Noozly!</h3>
+          <p>Deine persönliche Read-it-Later App. Speichere Artikel von überall und lese sie in Ruhe – wann und wo du möchtest.</p>
+        </div>
+        <!-- Step 2 -->
+        <div class="tutorial-step" data-step="2">
+          <div class="tutorial-step-icon">🔗</div>
+          <h3>Artikel speichern</h3>
+          <p>Kopiere einfach eine URL und füge sie in das Eingabefeld ein. Noozly lädt den Artikel automatisch herunter – auch für Offline-Nutzung.</p>
+        </div>
+        <!-- Step 3 -->
+        <div class="tutorial-step" data-step="3">
+          <div class="tutorial-step-icon">📚</div>
+          <h3>Deine Bibliothek</h3>
+          <p>In der Bibliothek siehst du alle gespeicherten Artikel. Markiere sie mit einem Stern ⭐, markiere sie als gelesen ✓ oder lösche sie.</p>
+        </div>
+        <!-- Step 4 -->
+        <div class="tutorial-step" data-step="4">
+          <div class="tutorial-step-icon">🧭</div>
+          <h3>Themen entdecken</h3>
+          <p>Unter „Entdecken" findest du Themen, die dich interessieren. Passe die Reihenfolge per Drag & Drop an und füge eigene Themen hinzu.</p>
+        </div>
+        <!-- Step 5 -->
+        <div class="tutorial-step" data-step="5">
+          <div class="tutorial-step-icon">🎉</div>
+          <h3>Du bist bereit!</h3>
+          <p>Das war's! Fang gleich an und speichere deinen ersten Artikel. Viel Spaß beim Lesen!</p>
+        </div>
+      </div>
+
+      <!-- Step indicator -->
+      <div class="tutorial-dots" id="tutorialDots">
+        <span class="tutorial-dot active" data-step="1"></span>
+        <span class="tutorial-dot" data-step="2"></span>
+        <span class="tutorial-dot" data-step="3"></span>
+        <span class="tutorial-dot" data-step="4"></span>
+        <span class="tutorial-dot" data-step="5"></span>
+      </div>
+
+      <div class="tutorial-nav">
+        <button class="btn btn-ghost" id="tutorialPrev" disabled>← Zurück</button>
+        <button class="btn btn-primary" id="tutorialNext">Weiter →</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/pricing.js"></script>
+{% endblock %}
