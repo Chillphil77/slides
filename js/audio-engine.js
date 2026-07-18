@@ -199,7 +199,9 @@
     var name = NOTE_NAMES[best.root] + ' ' + best.mode;
     return {
       name: NOTE_NAMES[best.root] + (best.mode === 'major' ? ' Dur' : ' Moll'),
-      camelot: CAMELOT[name] || '?'
+      camelot: CAMELOT[name] || '?',
+      root: best.root,
+      mode: best.mode
     };
   }
 

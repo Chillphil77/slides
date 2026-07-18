@@ -28,6 +28,14 @@ von Vintage-Songs zu bauen. Alles läuft **komplett lokal im Browser**
   - 🏠 **House-Beat-Layer**: synthetisierte 4-to-the-floor-Kick + Offbeat-Hats
     auf dem Ziel-Grid – für House-Remixe von Vintage-Tracks
 - **Presets**: Classic Blend · House Remix (124 BPM) · Schneller Cut
+- **🎛️ Style-Remix-Modus (1 Song, kein zweiter nötig)**: Song hochladen, Stil
+  wählen – Classic/Deep/Beach/Tropical/Vocal House, Roots Reggae, Boom Bap /
+  Old School / Lo-Fi HipHop, Trap, Dance, Big Room EDM. Die App legt einen
+  synthetisierten, beat-synchronen Drum-Groove + Bassline in der erkannten
+  Tonart unter den Song, passt das Tempo an und duckt das Original per
+  Sidechain. Zuschaltbare Instrumente (Piano, Gitarre via Karplus-Strong,
+  Synth-Pad, Steel Drum) spielen automatisch eine passende Akkord-Progression
+  in der Tonart des Songs.
 - **Export als WAV** + Vorschau-Player mit Übergangs-Markern
 - **PWA**: offline-fähig, auf dem iPhone als App installierbar
 

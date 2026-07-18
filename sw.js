@@ -1,10 +1,11 @@
 /* MixMate Service Worker – App-Shell offline verfügbar machen */
-var CACHE = 'mixmate-v1';
+var CACHE = 'mixmate-v2';
 var SHELL = [
   './',
   './index.html',
   './css/style.css',
   './js/audio-engine.js',
+  './js/style-engine.js',
   './js/app.js',
   './manifest.webmanifest',
   './icons/icon-180.png',

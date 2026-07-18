@@ -53,6 +53,14 @@
   </header>
 
   <main>
+    <!-- Modus-Wahl -->
+    <nav class="mode-tabs">
+      <button class="tab tab-active" id="tabMix">🎚️ 2-Song-Mix</button>
+      <button class="tab" id="tabStyle">🎛️ Style-Remix</button>
+    </nav>
+
+    <!-- ================== Modus: 2-Song-Mix ================== -->
+    <div id="modeMix">
     <!-- Decks -->
     <section class="decks">
       <div class="deck" id="deckA">
@@ -179,6 +187,70 @@
         </div>
       </div>
     </section>
+    </div><!-- /modeMix -->
+
+    <!-- ================== Modus: Style-Remix ================== -->
+    <div id="modeStyle" class="hidden">
+      <section class="decks">
+        <div class="deck" id="deckS">
+          <div class="deck-label deck-label-s">DEIN SONG <span class="deck-sub">wird im Stil geremixt</span></div>
+          <label class="dropzone" id="dropS">
+            <input type="file" id="fileS" accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg,.flac" hidden>
+            <span class="dz-icon">＋</span>
+            <span class="dz-text">Song auswählen</span>
+            <span class="dz-hint">MP3 · M4A · WAV</span>
+          </label>
+          <div class="deck-info hidden" id="infoS">
+            <div class="track-name" id="nameS"></div>
+            <canvas class="waveform" id="waveS" height="56"></canvas>
+            <div class="track-stats">
+              <span class="stat"><b id="bpmS">–</b> BPM</span>
+              <span class="stat" id="keyS">–</span>
+              <span class="stat" id="durS">–</span>
+            </div>
+            <button class="btn-mini" data-change="S">Song wechseln</button>
+          </div>
+          <div class="deck-status hidden" id="statusS"></div>
+        </div>
+      </section>
+
+      <section class="style-picker">
+        <h3 class="section-title">Stil wählen</h3>
+        <div id="styleGroups"></div>
+      </section>
+
+      <section class="style-picker">
+        <h3 class="section-title">Instrumente ergänzen <span class="section-sub">(spielen automatisch in der Tonart deines Songs)</span></h3>
+        <div class="inst-chips">
+          <button class="chip inst-chip" data-inst="piano">🎹 Piano</button>
+          <button class="chip inst-chip" data-inst="guitar">🎸 Gitarre</button>
+          <button class="chip inst-chip" data-inst="pad">🌫️ Synth-Pad</button>
+          <button class="chip inst-chip" data-inst="steel">🛢️ Steel Drum</button>
+        </div>
+        <div class="adv-row" style="margin-top:12px">
+          <label class="adv-label">Instrumente-Lautstärke
+            <span class="adv-value" id="instLevelVal">60 %</span>
+          </label>
+          <input type="range" id="instLevel" min="10" max="100" value="60" step="5">
+        </div>
+        <div class="adv-row" style="margin-top:6px">
+          <label class="adv-label">Beat-Lautstärke
+            <span class="adv-value" id="beatLevelVal">80 %</span>
+          </label>
+          <input type="range" id="beatLevel" min="20" max="100" value="80" step="5">
+        </div>
+        <label class="check-inline" style="margin-top:10px">
+          <input type="checkbox" id="keepTempo"> Original-Tempo des Songs behalten
+        </label>
+      </section>
+
+      <section class="mix-actions">
+        <button class="btn btn-mix" id="styleBtn" disabled>
+          <span class="btn-mix-label">🎛️ Style-Remix erstellen</span>
+          <span class="btn-mix-sub" id="styleBtnSub">Song + Stil wählen</span>
+        </button>
+      </section>
+    </div><!-- /modeStyle -->
 
     <!-- Progress -->
     <section class="progress hidden" id="progress">
@@ -210,6 +282,7 @@
   </main>
 
   <script src="js/audio-engine.js"></script>
+  <script src="js/style-engine.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

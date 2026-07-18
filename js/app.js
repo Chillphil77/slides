@@ -7,8 +7,17 @@
   var state = {
     A: null, // { file, buffer, analysis }
     B: null,
+    S: null, // Single-Song für Style-Remix
+    mode: 'mix',
     busy: false,
     resultUrl: null,
+    styleSettings: {
+      styleId: null,
+      beatLevel: 0.8,
+      instLevel: 0.6,
+      keepTempo: false,
+      instruments: { piano: false, guitar: false, pad: false, steel: false }
+    },
     settings: {
       preset: 'classic',
       bpmAuto: true,
@@ -53,6 +62,7 @@
 
   setupDeck('A');
   setupDeck('B');
+  setupDeck('S');
 
   function setupDeck(deck) {
     var input = $('file' + deck);
@@ -107,7 +117,7 @@
         : 'Tonart ?';
       $('dur' + deck).textContent = formatTime(buffer.duration);
       drawWaveform($('wave' + deck), buffer,
-        deck === 'A' ? '#ff2d78' : '#21d4fd');
+        deck === 'A' ? '#ff2d78' : deck === 'S' ? '#b721ff' : '#21d4fd');
 
       status.classList.add('hidden');
       info.classList.remove('hidden');
@@ -145,6 +155,12 @@
 
   function updateMixButton() {
     $('mixBtn').disabled = !(state.A && state.B) || state.busy;
+    var s = state.styleSettings;
+    var styleReady = state.S && s.styleId && !state.busy;
+    $('styleBtn').disabled = !styleReady;
+    $('styleBtnSub').textContent = !state.S ? 'Song + Stil wählen'
+      : !s.styleId ? 'Noch einen Stil wählen'
+      : '1 Klick – fertig geremixt';
   }
 
   // ---------------------------------------------------------- Waveforms
@@ -395,6 +411,138 @@
     var m = Math.floor(sec / 60);
     var s = sec % 60;
     return m + ':' + (s < 10 ? '0' : '') + s;
+  }
+
+  // ---------------------------------------------------------- Style-Remix
+
+  $('tabMix').addEventListener('click', function () { setMode('mix'); });
+  $('tabStyle').addEventListener('click', function () { setMode('style'); });
+
+  function setMode(mode) {
+    state.mode = mode;
+    $('tabMix').classList.toggle('tab-active', mode === 'mix');
+    $('tabStyle').classList.toggle('tab-active', mode === 'style');
+    $('modeMix').classList.toggle('hidden', mode !== 'mix');
+    $('modeStyle').classList.toggle('hidden', mode !== 'style');
+    $('result').classList.add('hidden');
+  }
+
+  // Stil-Auswahl aus der Engine-Definition aufbauen
+  (function buildStylePicker() {
+    var container = $('styleGroups');
+    var groups = {};
+    StyleEngine.STYLES.forEach(function (st) {
+      (groups[st.group] = groups[st.group] || []).push(st);
+    });
+    Object.keys(groups).forEach(function (g) {
+      var row = document.createElement('div');
+      row.className = 'style-group';
+      var label = document.createElement('div');
+      label.className = 'style-group-label';
+      label.textContent = g;
+      row.appendChild(label);
+      var chips = document.createElement('div');
+      chips.className = 'style-chips';
+      groups[g].forEach(function (st) {
+        var btn = document.createElement('button');
+        btn.className = 'chip style-chip';
+        btn.setAttribute('data-style', st.id);
+        btn.textContent = st.label + ' · ' + st.bpm;
+        btn.addEventListener('click', function () {
+          document.querySelectorAll('.style-chip').forEach(function (c) {
+            c.classList.remove('chip-active');
+          });
+          btn.classList.add('chip-active');
+          state.styleSettings.styleId = st.id;
+          updateMixButton();
+        });
+        chips.appendChild(btn);
+      });
+      row.appendChild(chips);
+      container.appendChild(row);
+    });
+  })();
+
+  document.querySelectorAll('.inst-chip').forEach(function (chip) {
+    chip.addEventListener('click', function () {
+      var key = chip.getAttribute('data-inst');
+      var on = !state.styleSettings.instruments[key];
+      state.styleSettings.instruments[key] = on;
+      chip.classList.toggle('chip-active', on);
+    });
+  });
+
+  $('instLevel').addEventListener('input', function () {
+    state.styleSettings.instLevel = parseInt(this.value, 10) / 100;
+    $('instLevelVal').textContent = this.value + ' %';
+  });
+  $('beatLevel').addEventListener('input', function () {
+    state.styleSettings.beatLevel = parseInt(this.value, 10) / 100;
+    $('beatLevelVal').textContent = this.value + ' %';
+  });
+  $('keepTempo').addEventListener('change', function () {
+    state.styleSettings.keepTempo = this.checked;
+  });
+
+  $('styleBtn').addEventListener('click', runStyleRemix);
+
+  async function runStyleRemix() {
+    var s = state.styleSettings;
+    if (!state.S || !s.styleId || state.busy) return;
+    state.busy = true;
+    updateMixButton();
+    $('result').classList.add('hidden');
+    $('progress').classList.remove('hidden');
+    $('progressText').textContent = 'Style-Remix wird berechnet …';
+
+    try {
+      await new Promise(function (r) { setTimeout(r, 60); });
+
+      var result = await StyleEngine.renderStyleRemix(state.S, {
+        styleId: s.styleId,
+        beatLevel: s.beatLevel,
+        instLevel: s.instLevel,
+        keepTempo: s.keepTempo,
+        instruments: s.instruments
+      }, function (msg) { $('progressText').textContent = msg; });
+
+      $('progressText').textContent = 'WAV wird erstellt …';
+      await new Promise(function (r) { setTimeout(r, 30); });
+
+      var blob = AudioEngine.encodeWav(result.buffer);
+      if (state.resultUrl) URL.revokeObjectURL(state.resultUrl);
+      state.resultUrl = URL.createObjectURL(blob);
+
+      $('player').src = state.resultUrl;
+      var dl = $('downloadBtn');
+      dl.href = state.resultUrl;
+      var base = state.S.file.name.replace(/\.[^.]+$/, '')
+        .replace(/[^\w\-äöüÄÖÜß ]/g, '').slice(0, 30).trim();
+      dl.setAttribute('download', base + ' (' + result.meta.style + ' Remix).wav');
+
+      var m = result.meta;
+      var instNames = { piano: 'Piano', guitar: 'Gitarre', pad: 'Synth-Pad', steel: 'Steel Drum' };
+      var instOn = Object.keys(s.instruments)
+        .filter(function (k) { return s.instruments[k]; })
+        .map(function (k) { return instNames[k]; });
+      $('resultMeta').innerHTML =
+        '<b>' + m.style + '</b> · ' + m.targetBpm + ' BPM' +
+        (m.keyName ? ' · Tonart ' + m.keyName : '') +
+        ' · Länge ' + formatTime(m.totalDuration) +
+        (instOn.length ? ' · Instrumente: ' + instOn.join(', ') : '');
+
+      drawWaveform($('waveResult'), result.buffer, '#b721ff');
+
+      $('progress').classList.add('hidden');
+      $('result').classList.remove('hidden');
+      $('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (err) {
+      console.error(err);
+      $('progress').classList.add('hidden');
+      alert('Beim Remixen ist ein Fehler aufgetreten: ' + (err && err.message ? err.message : err));
+    }
+    state.busy = false;
+    updateMixButton();
   }
 
   // ---------------------------------------------------------- PWA
