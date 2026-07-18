@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <title>MixMate – Auto DJ Studio</title>
+  <meta name="description" content="Zwei Songs automatisch und professionell mixen – direkt im Browser. Beat-synchroner Übergang, Bass-Swap, House-Remix-Modus.">
+  <meta name="theme-color" content="#0b0b14">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MixMate">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="icon" type="image/png" href="icons/icon-180.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ======================= Copyright-Gate ======================= -->
+  <div class="modal-backdrop" id="copyrightModal">
+    <div class="modal">
+      <div class="modal-icon">⚖️</div>
+      <h2>Bevor du mixst</h2>
+      <p>
+        MixMate verarbeitet deine Songs <strong>ausschließlich lokal auf deinem
+        Gerät</strong> – es wird nichts hochgeladen.
+      </p>
+      <p>
+        <strong>Wichtig zum Urheberrecht:</strong> Das Remixen und insbesondere das
+        Veröffentlichen von Remixes fremder Songs erfordert die Zustimmung der
+        Rechteinhaber (Label/Verlag/Künstler:in). Verwende nur Musik,
+        an der du die nötigen Rechte besitzt – z.&nbsp;B. eigene Produktionen,
+        lizenzfreie Musik oder Tracks mit entsprechender Lizenz (Creative Commons,
+        gekaufte Remix-Stems etc.). Für rein private Nutzung gelten je nach Land
+        andere Regeln – im Zweifel rechtlich beraten lassen.
+      </p>
+      <label class="check-row">
+        <input type="checkbox" id="copyrightCheck">
+        <span>Ich bestätige, dass ich die erforderlichen Rechte an den Songs besitze,
+        die ich mixe, oder sie nur im rechtlich zulässigen privaten Rahmen nutze.</span>
+      </label>
+      <button class="btn btn-primary" id="copyrightAccept" disabled>Los geht's 🎧</button>
+    </div>
+  </div>
+
+  <!-- ======================= App ======================= -->
+  <header class="app-header">
+    <div class="logo">
+      <span class="logo-disc"></span>
+      <h1>MixMate</h1>
+    </div>
+    <p class="tagline">Auto DJ Studio – zwei Songs, ein perfekter Mix.</p>
+  </header>
+
+  <main>
+    <!-- Decks -->
+    <section class="decks">
+      <div class="deck" id="deckA">
+        <div class="deck-label deck-label-a">DECK A <span class="deck-sub">Start-Song</span></div>
+        <label class="dropzone" id="dropA">
+          <input type="file" id="fileA" accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg,.flac" hidden>
+          <span class="dz-icon">＋</span>
+          <span class="dz-text">Song auswählen</span>
+          <span class="dz-hint">MP3 · M4A · WAV</span>
+        </label>
+        <div class="deck-info hidden" id="infoA">
+          <div class="track-name" id="nameA"></div>
+          <canvas class="waveform" id="waveA" height="56"></canvas>
+          <div class="track-stats">
+            <span class="stat"><b id="bpmA">–</b> BPM</span>
+            <span class="stat" id="keyA">–</span>
+            <span class="stat" id="durA">–</span>
+          </div>
+          <button class="btn-mini" data-change="A">Song wechseln</button>
+        </div>
+        <div class="deck-status hidden" id="statusA"></div>
+      </div>
+
+      <div class="deck-arrow">↓</div>
+
+      <div class="deck" id="deckB">
+        <div class="deck-label deck-label-b">DECK B <span class="deck-sub">Ziel-Song</span></div>
+        <label class="dropzone" id="dropB">
+          <input type="file" id="fileB" accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg,.flac" hidden>
+          <span class="dz-icon">＋</span>
+          <span class="dz-text">Song auswählen</span>
+          <span class="dz-hint">MP3 · M4A · WAV</span>
+        </label>
+        <div class="deck-info hidden" id="infoB">
+          <div class="track-name" id="nameB"></div>
+          <canvas class="waveform" id="waveB" height="56"></canvas>
+          <div class="track-stats">
+            <span class="stat"><b id="bpmB">–</b> BPM</span>
+            <span class="stat" id="keyB">–</span>
+            <span class="stat" id="durB">–</span>
+          </div>
+          <button class="btn-mini" data-change="B">Song wechseln</button>
+        </div>
+        <div class="deck-status hidden" id="statusB"></div>
+      </div>
+    </section>
+
+    <div class="key-hint hidden" id="keyHint"></div>
+
+    <!-- Presets -->
+    <section class="presets">
+      <button class="chip chip-active" data-preset="classic">🎚️ Classic Blend</button>
+      <button class="chip" data-preset="house">🏠 House Remix</button>
+      <button class="chip" data-preset="quick">⚡ Schneller Cut</button>
+    </section>
+
+    <!-- Mix button -->
+    <section class="mix-actions">
+      <button class="btn btn-mix" id="mixBtn" disabled>
+        <span class="btn-mix-label">✨ Auto-Mix</span>
+        <span class="btn-mix-sub">1 Klick – fertig gemischt</span>
+      </button>
+      <button class="btn-toggle" id="advToggle">⚙️ Erweiterte Einstellungen</button>
+    </section>
+
+    <!-- Advanced panel -->
+    <section class="advanced hidden" id="advPanel">
+      <div class="adv-row">
+        <label class="adv-label">Ziel-BPM
+          <span class="adv-value" id="targetBpmVal">Auto</span>
+        </label>
+        <label class="check-inline">
+          <input type="checkbox" id="bpmAuto" checked> Auto (Tempo von Deck A)
+        </label>
+        <input type="range" id="targetBpm" min="90" max="140" value="124" step="1" disabled>
+      </div>
+
+      <div class="adv-row">
+        <label class="adv-label">Übergangslänge
+          <span class="adv-value" id="transLenVal">8 Takte</span>
+        </label>
+        <input type="range" id="transLen" min="1" max="4" value="2" step="1">
+        <div class="range-marks"><span>4</span><span>8</span><span>16</span><span>32 Takte</span></div>
+      </div>
+
+      <div class="adv-row">
+        <label class="adv-label">Übergangspunkt in Deck A
+          <span class="adv-value" id="transPointVal">75 %</span>
+        </label>
+        <input type="range" id="transPoint" min="30" max="95" value="75" step="1">
+      </div>
+
+      <div class="adv-row">
+        <label class="adv-label">Blendkurve</label>
+        <div class="seg" id="curveSeg">
+          <button class="seg-btn seg-active" data-curve="equal">Equal Power</button>
+          <button class="seg-btn" data-curve="scurve">S-Kurve</button>
+          <button class="seg-btn" data-curve="linear">Linear</button>
+        </div>
+      </div>
+
+      <div class="adv-row adv-checks">
+        <label class="check-inline">
+          <input type="checkbox" id="bassSwap" checked> Bass-Swap (EQ-Übergabe am Drop)
+        </label>
+        <label class="check-inline">
+          <input type="checkbox" id="skipIntro" checked> Intro von Deck B überspringen
+        </label>
+      </div>
+
+      <div class="adv-row adv-house">
+        <label class="check-inline house-toggle">
+          <input type="checkbox" id="houseMode"> 🏠 House-Beat-Layer (Kick&nbsp;+&nbsp;Hats)
+        </label>
+        <div class="house-opts hidden" id="houseOpts">
+          <label class="adv-label">Beat-Lautstärke
+            <span class="adv-value" id="houseLevelVal">70 %</span>
+          </label>
+          <input type="range" id="houseLevel" min="10" max="100" value="70" step="5">
+          <div class="seg" id="houseScopeSeg">
+            <button class="seg-btn" data-scope="transition">Nur Übergang</button>
+            <button class="seg-btn seg-active" data-scope="rest">Ab Übergang bis Ende</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Progress -->
+    <section class="progress hidden" id="progress">
+      <div class="spinner"></div>
+      <div class="progress-text" id="progressText">Analysiere …</div>
+    </section>
+
+    <!-- Result -->
+    <section class="result hidden" id="result">
+      <h2>🎉 Dein Mix ist fertig</h2>
+      <div class="result-meta" id="resultMeta"></div>
+      <canvas class="waveform waveform-result" id="waveResult" height="72"></canvas>
+      <audio id="player" controls preload="metadata"></audio>
+      <div class="result-actions">
+        <a class="btn btn-primary" id="downloadBtn" download="mixmate-mix.wav">⬇️ WAV herunterladen</a>
+        <button class="btn btn-ghost" id="remixBtn">🔁 Neu mischen</button>
+      </div>
+    </section>
+
+    <footer class="app-footer">
+      <p>
+        Alle Audiodaten bleiben auf deinem Gerät. ·
+        <a href="#" id="legalLink">Urheberrecht</a>
+      </p>
+      <p class="footer-tip" id="iosTip">
+        📱 Tipp: In Safari über <b>Teilen&nbsp;→&nbsp;Zum Home-Bildschirm</b> als App installieren.
+      </p>
+    </footer>
+  </main>
+
+  <script src="js/audio-engine.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
