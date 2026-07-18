@@ -19,6 +19,17 @@ von Vintage-Songs zu bauen. Alles läuft **komplett lokal im Browser**
   - **Bass-Swap**: Der Bass wird am „Drop" per EQ von Song A an Song B übergeben –
     wie es echte DJs machen
   - Loudness-Angleich + Master-Kompressor („Glue")
+- **🧠 Pro-Mix (an per Default)** – mixt wie ein Profi-DJ:
+  - Übergänge auf **8-Takt-Phrasen** gesnappt (32/16/8 Beats), nicht nur auf Beats
+  - **Stem-Staging**: Song B kommt zuerst nur mit Drums, Instrumente ziehen
+    gestaffelt nach, Vocals erst ab dem Drop
+  - **Vocal-Clash-Schutz**: A-Vocals werden ausgeblendet, bevor B-Vocals einsetzen
+  - **Tonart-bewusst**: Bei inkompatiblen Tonarten bleiben melodische Anteile
+    länger draußen, bis Track A übergeben hat
+- **🎚️ Stem-Steuerung (Advanced)**: Gesang / Drums / Bass / Instrumente pro
+  Deck regelbar (z. B. Acapella von B über Instrumental von A). DSP-basierte
+  Näherung: Center-Kanal-Extraktion (Vocals), Frequenz-Splitting (Bass),
+  Transienten-Trennung (Drums) – komplett im Browser, ohne Server.
 - **Advanced-Modus** mit Parametern:
   - Ziel-BPM (Auto oder manuell 90–140)
   - Übergangslänge (4/8/16/32 Takte)

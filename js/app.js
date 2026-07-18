@@ -27,6 +27,11 @@
       curve: 'equal',
       bassSwap: true,
       skipIntroB: true,
+      proMix: true,
+      stems: {
+        a: { vocals: 1, drums: 1, bass: 1, instr: 1 },
+        b: { vocals: 1, drums: 1, bass: 1, instr: 1 }
+      },
       house: false,
       houseLevel: 0.7,
       houseScope: 'rest'
@@ -264,6 +269,27 @@
   $('bassSwap').addEventListener('change', function () {
     state.settings.bassSwap = this.checked;
   });
+  $('proMix').addEventListener('change', function () {
+    state.settings.proMix = this.checked;
+  });
+  $('stemsToggle').addEventListener('change', function () {
+    $('stemsPanel').classList.toggle('hidden', !this.checked);
+    if (!this.checked) {
+      // Zurücksetzen, damit "aus" wirklich neutral ist
+      ['a', 'b'].forEach(function (d) {
+        ['vocals', 'drums', 'bass', 'instr'].forEach(function (k) {
+          state.settings.stems[d][k] = 1;
+        });
+      });
+      document.querySelectorAll('.stem-slider').forEach(function (sl) { sl.value = 100; });
+    }
+  });
+  document.querySelectorAll('.stem-slider').forEach(function (sl) {
+    sl.addEventListener('input', function () {
+      state.settings.stems[sl.getAttribute('data-deck')][sl.getAttribute('data-stem')] =
+        parseInt(sl.value, 10) / 100;
+    });
+  });
   $('skipIntro').addEventListener('change', function () {
     state.settings.skipIntroB = this.checked;
   });
@@ -301,6 +327,7 @@
     $('transPoint').value = Math.round(s.transitionPointPct * 100);
     $('bassSwap').checked = s.bassSwap;
     $('skipIntro').checked = s.skipIntroB;
+    $('proMix').checked = s.proMix;
     $('houseMode').checked = s.house;
     $('houseOpts').classList.toggle('hidden', !s.house);
     $('houseLevel').value = Math.round(s.houseLevel * 100);
@@ -349,6 +376,8 @@
       curve: s.curve,
       bassSwap: s.bassSwap,
       skipIntroB: s.skipIntroB,
+      proMix: s.proMix,
+      stems: s.stems,
       house: s.house,
       houseLevel: s.houseLevel,
       houseScope: s.houseScope
@@ -380,6 +409,7 @@
         '<b>' + m.targetBpm + ' BPM</b> · Übergang bei ' +
         formatTime(m.transitionStart) + ' (' + Math.round(m.transitionDuration) + ' s)' +
         ' · Gesamtlänge ' + formatTime(m.totalDuration) +
+        (opts.proMix ? ' · 🧠 Pro-Mix' : '') +
         (opts.house ? ' · 🏠 House-Layer aktiv' : '');
 
       drawWaveform($('waveResult'), result.buffer, '#b721ff', [

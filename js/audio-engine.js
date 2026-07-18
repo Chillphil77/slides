@@ -280,6 +280,36 @@
     return 0;
   }
 
+  // Transienten-Hüllkurve (0..1, 50 Hz) für die Drums-/Rest-Trennung
+  var ENV_RATE = 50;
+  function computeTransientEnv(buffer) {
+    var mono = toMono(buffer);
+    var sr = buffer.sampleRate;
+    var hop = Math.floor(sr / ENV_RATE);
+    var frames = Math.max(2, Math.floor(mono.length / hop));
+    var energy = new Float32Array(frames);
+    for (var f = 0; f < frames; f++) {
+      var sum = 0;
+      var start = f * hop;
+      for (var i = start; i < start + hop; i += 4) sum += mono[i] * mono[i];
+      energy[f] = Math.sqrt(sum / (hop / 4));
+    }
+    // Onset = positiver Energiesprung, normalisiert aufs 95. Perzentil
+    var onsets = new Float32Array(frames);
+    for (var j = 1; j < frames; j++) onsets[j] = Math.max(0, energy[j] - energy[j - 1]);
+    var sorted = Array.prototype.slice.call(onsets).sort(function (a, b) { return a - b; });
+    var norm = sorted[Math.floor(sorted.length * 0.95)] || 1;
+    if (norm <= 0) norm = 1;
+    var env = new Float32Array(frames);
+    var v = 0;
+    for (var k = 0; k < frames; k++) {
+      var o = Math.min(1, onsets[k] / norm);
+      v = Math.max(o, v * 0.55); // schneller Attack, ~90 ms Release
+      env[k] = v;
+    }
+    return env;
+  }
+
   async function analyzeTrack(buffer, onStatus) {
     if (onStatus) onStatus('BPM wird erkannt …');
     var beat = await detectBPM(buffer);
@@ -287,6 +317,7 @@
     var key = detectKey(buffer);
     var rms = computeRMS(buffer);
     var firstBeat = findFirstBeat(buffer);
+    var transientEnv = computeTransientEnv(buffer);
     return {
       bpm: beat.bpm,
       anchor: beat.anchor,
@@ -294,6 +325,8 @@
       key: key,
       rms: rms,
       firstBeat: firstBeat,
+      transientEnv: transientEnv,
+      envRate: ENV_RATE,
       duration: buffer.duration
     };
   }
@@ -351,6 +384,93 @@
     return curve;
   }
 
+  /*
+   * Stem-Splitter (DSP-Näherung, Summe ≈ Original bei allen Gains = 1):
+   *  - Bass: Tiefpass 120 Hz (24 dB/Okt)
+   *  - Vocals: Center-Signal (Mid) im Band 180–6000 Hz
+   *  - Drums: transiente Anteile des Rests (Hüllkurven-gesteuert)
+   *  - Instrumente: der verbleibende Rest (Seiten-Signal + Mid außerhalb
+   *    des Vocal-Bands, nicht-transient)
+   */
+  function buildStemChain(ctx) {
+    var input = ctx.createGain();
+    var output = ctx.createGain();
+
+    // ---- Bass (direkt vom Eingang)
+    var lp1 = ctx.createBiquadFilter(); lp1.type = 'lowpass'; lp1.frequency.value = 120;
+    var lp2 = ctx.createBiquadFilter(); lp2.type = 'lowpass'; lp2.frequency.value = 120;
+    var gBass = ctx.createGain();
+    input.connect(lp1); lp1.connect(lp2); lp2.connect(gBass); gBass.connect(output);
+
+    // ---- Rest über 120 Hz → Mid/Side
+    var hp1 = ctx.createBiquadFilter(); hp1.type = 'highpass'; hp1.frequency.value = 120;
+    var hp2 = ctx.createBiquadFilter(); hp2.type = 'highpass'; hp2.frequency.value = 120;
+    input.connect(hp1); hp1.connect(hp2);
+
+    var split = ctx.createChannelSplitter(2);
+    hp2.connect(split);
+    var midSum = ctx.createGain();               // (L+R)/2
+    var sideSum = ctx.createGain();              // (L−R)/2
+    var gL1 = ctx.createGain(); gL1.gain.value = 0.5;
+    var gR1 = ctx.createGain(); gR1.gain.value = 0.5;
+    var gL2 = ctx.createGain(); gL2.gain.value = 0.5;
+    var gR2 = ctx.createGain(); gR2.gain.value = -0.5;
+    split.connect(gL1, 0); split.connect(gR1, 1); gL1.connect(midSum); gR1.connect(midSum);
+    split.connect(gL2, 0); split.connect(gR2, 1); gL2.connect(sideSum); gR2.connect(sideSum);
+
+    // ---- Vocals: Mid im Band 180–6000 Hz
+    var vHP = ctx.createBiquadFilter(); vHP.type = 'highpass'; vHP.frequency.value = 180;
+    var vLP = ctx.createBiquadFilter(); vLP.type = 'lowpass'; vLP.frequency.value = 6000;
+    midSum.connect(vHP); vHP.connect(vLP);
+    var gVocals = ctx.createGain();
+    var vMerge = ctx.createChannelMerger(2);
+    vLP.connect(vMerge, 0, 0); vLP.connect(vMerge, 0, 1);
+    vMerge.connect(gVocals); gVocals.connect(output);
+
+    // ---- Mid-Rest = Mid − Vocal-Band (Phasen-Subtraktion)
+    var vInv = ctx.createGain(); vInv.gain.value = -1;
+    vLP.connect(vInv);
+    var midRest = ctx.createGain();
+    midSum.connect(midRest); vInv.connect(midRest);
+
+    // ---- Rest-Bus (stereo): Mid-Rest auf beide Kanäle, Side gegenphasig
+    var restMerge = ctx.createChannelMerger(2);
+    midRest.connect(restMerge, 0, 0); midRest.connect(restMerge, 0, 1);
+    var sInv = ctx.createGain(); sInv.gain.value = -1;
+    sideSum.connect(restMerge, 0, 0);
+    sideSum.connect(sInv); sInv.connect(restMerge, 0, 1);
+
+    // ---- Drums (transient) vs. Instrumente (Rest) — Hüllkurve setzt der Aufrufer
+    var envDrums = ctx.createGain(); envDrums.gain.value = 0.5;
+    var envInstr = ctx.createGain(); envInstr.gain.value = 0.5;
+    var gDrums = ctx.createGain();
+    var gInstr = ctx.createGain();
+    restMerge.connect(envDrums); envDrums.connect(gDrums); gDrums.connect(output);
+    restMerge.connect(envInstr); envInstr.connect(gInstr); gInstr.connect(output);
+
+    return {
+      input: input, output: output,
+      gains: { vocals: gVocals, drums: gDrums, bass: gBass, instr: gInstr },
+      envDrums: envDrums, envInstr: envInstr
+    };
+  }
+
+  // Hüllkurve (ggf. ab Offset) auf die Drum-/Instrument-Zweige legen
+  function applyStemEnv(chain, analysis, startTime, sourceOffsetSec, outDuration) {
+    var env = analysis.transientEnv;
+    var rate = analysis.envRate || 50;
+    if (!env || env.length < 4) return;
+    var from = Math.min(env.length - 2, Math.floor(sourceOffsetSec * rate));
+    var slice = env.subarray(from);
+    if (slice.length < 2) return;
+    var inv = new Float32Array(slice.length);
+    for (var i = 0; i < slice.length; i++) inv[i] = 1 - slice[i];
+    try {
+      chain.envDrums.gain.setValueCurveAtTime(slice, startTime, outDuration);
+      chain.envInstr.gain.setValueCurveAtTime(inv, startTime, outDuration);
+    } catch (e) { /* Fallback: statische 50/50-Aufteilung */ }
+  }
+
   /**
    * Rendert den kompletten Mix offline.
    * a/b: { buffer, analysis } — opts siehe app.js
@@ -370,13 +490,25 @@
     var beatA = 60 / foldedA;
     var beatB = 60 / foldedB;
 
-    // Übergangspunkt in Track A (auf Beat-Raster gesnappt)
+    // Übergangspunkt in Track A: Pro-Modus snappt auf Phrasen (32/16/8 Beats),
+    // sonst aufs Beat-Raster
     var transBeats = opts.transitionBeats;
     var transDurInA = transBeats * beatA;
     var wantStartA = a.buffer.duration * opts.transitionPointPct;
     var maxStartA = a.buffer.duration - transDurInA - 0.5;
-    var transStartA = snapToGrid(Math.min(wantStartA, Math.max(0, maxStartA)),
-      a.analysis.anchor, beatA);
+    var transStartA = -1;
+    if (opts.proMix) {
+      var phrases = [32, 16, 8];
+      for (var ph = 0; ph < phrases.length; ph++) {
+        var cand = snapToGrid(Math.min(wantStartA, Math.max(0, maxStartA)),
+          a.analysis.anchor, beatA * phrases[ph]);
+        if (cand >= 1 && cand <= maxStartA) { transStartA = cand; break; }
+      }
+    }
+    if (transStartA < 0) {
+      transStartA = snapToGrid(Math.min(wantStartA, Math.max(0, maxStartA)),
+        a.analysis.anchor, beatA);
+    }
     if (transStartA > maxStartA) transStartA = Math.max(0, maxStartA);
     if (transStartA < 1) transStartA = Math.min(1, a.buffer.duration * 0.3);
 
@@ -410,7 +542,7 @@
     comp.attack.value = 0.004;
     comp.release.value = 0.18;
     var master = off.createGain();
-    master.gain.value = 0.95;
+    master.gain.value = 0.9;
     comp.connect(master);
     master.connect(off.destination);
 
@@ -418,6 +550,15 @@
     var targetRms = 0.16;
     var gA = clamp(targetRms / Math.max(0.001, a.analysis.rms), 0.5, 2.5);
     var gB = clamp(targetRms / Math.max(0.001, b.analysis.rms), 0.5, 2.5);
+
+    // Stem-Steuerung: Basis-Level aus den Advanced-Reglern (Default 1)
+    var stemsA = (opts.stems && opts.stems.a) || {};
+    var stemsB = (opts.stems && opts.stems.b) || {};
+    function stemVal(s, k) { return typeof s[k] === 'number' ? s[k] : 1; }
+    function stemsActive(s) {
+      return ['vocals', 'drums', 'bass', 'instr'].some(function (k) { return stemVal(s, k) !== 1; });
+    }
+    var useStems = !!opts.proMix || stemsActive(stemsA) || stemsActive(stemsB);
 
     // ---- Deck A
     var srcA = off.createBufferSource();
@@ -428,7 +569,18 @@
     shelfA.frequency.value = 250;
     shelfA.gain.value = 0;
     var gainA = off.createGain();
-    srcA.connect(shelfA);
+    var chainA = null;
+    if (useStems) {
+      chainA = buildStemChain(off);
+      srcA.connect(chainA.input);
+      chainA.output.connect(shelfA);
+      ['vocals', 'drums', 'bass', 'instr'].forEach(function (k) {
+        chainA.gains[k].gain.value = stemVal(stemsA, k);
+      });
+      applyStemEnv(chainA, a.analysis, 0, 0, a.buffer.duration / rateA);
+    } else {
+      srcA.connect(shelfA);
+    }
     shelfA.connect(gainA);
     gainA.connect(comp);
 
@@ -441,7 +593,17 @@
     shelfB.frequency.value = 250;
     shelfB.gain.value = 0;
     var gainB = off.createGain();
-    srcB.connect(shelfB);
+    var chainB = null;
+    if (useStems) {
+      chainB = buildStemChain(off);
+      srcB.connect(chainB.input);
+      chainB.output.connect(shelfB);
+      ['vocals', 'drums', 'bass', 'instr'].forEach(function (k) {
+        chainB.gains[k].gain.value = stemVal(stemsB, k);
+      });
+    } else {
+      srcB.connect(shelfB);
+    }
     shelfB.connect(gainB);
     gainB.connect(comp);
 
@@ -460,10 +622,12 @@
     gainB.gain.setValueAtTime(0, 0);
     gainB.gain.setValueCurveAtTime(inCurve, T0, transDur);
 
+    // "Drop": beat-gesnappter Moment, an dem B übernimmt
+    var drop = T0 + transDur * 0.55;
+    drop = T0 + Math.round((drop - T0) / beatOut) * beatOut;
+
     // ---- Bass-Swap: B ohne Bass einblenden, am "Drop" Bass tauschen
     if (opts.bassSwap) {
-      var drop = T0 + transDur * 0.55;
-      drop = T0 + Math.round((drop - T0) / beatOut) * beatOut;
       var swapLen = beatOut * 2;
       shelfB.gain.setValueAtTime(-15, 0);
       shelfB.gain.setValueAtTime(-15, Math.max(0, drop - 0.01));
@@ -473,9 +637,45 @@
       shelfA.gain.linearRampToValueAtTime(-15, drop + swapLen);
     }
 
+    // ---- Pro-Mix-Staging: B kommt zuerst nur mit Drums, Melodisches folgt
+    // gestaffelt; Vocal-Clash-Schutz blendet A-Vocals aus, bevor B-Vocals
+    // einsetzen. Bei inkompatiblen Tonarten bleibt Melodisches länger draußen.
+    if (opts.proMix && chainA && chainB) {
+      var compat = true;
+      if (a.analysis.key && b.analysis.key) {
+        var c = camelotCompatible(a.analysis.key.camelot, b.analysis.key.camelot);
+        if (c === false) compat = false;
+      }
+      var vB = stemVal(stemsB, 'vocals');
+      var iB = stemVal(stemsB, 'instr');
+      var vA = stemVal(stemsA, 'vocals');
+
+      // B-Instrumente: gedämpft rein, zum Drop voll
+      var instrStart = compat ? T0 + transDur * 0.3 : Math.max(T0, drop - beatOut * 2);
+      var instrFull = compat ? drop : T0 + transDur;
+      chainB.gains.instr.gain.setValueAtTime(iB * (compat ? 0.35 : 0.15), 0);
+      chainB.gains.instr.gain.setValueAtTime(iB * (compat ? 0.35 : 0.15), Math.max(0, instrStart - 0.01));
+      chainB.gains.instr.gain.linearRampToValueAtTime(iB, instrFull);
+
+      // B-Vocals: erst ab dem Drop (inkompatibel: erst nach dem Übergang)
+      var vocalIn = compat ? drop : T0 + transDur;
+      chainB.gains.vocals.gain.setValueAtTime(0.0001, 0);
+      chainB.gains.vocals.gain.setValueAtTime(0.0001, Math.max(0, vocalIn - 0.01));
+      chainB.gains.vocals.gain.linearRampToValueAtTime(vB, vocalIn + beatOut * 2);
+
+      // A-Vocals: rechtzeitig raus, bevor B-Vocals kommen
+      chainA.gains.vocals.gain.setValueAtTime(vA, 0);
+      chainA.gains.vocals.gain.setValueAtTime(vA, T0 + transDur * 0.4);
+      chainA.gains.vocals.gain.linearRampToValueAtTime(0.0001, Math.min(vocalIn, T0 + transDur * 0.8));
+    }
+
     srcA.start(0, 0);
     srcA.stop(Math.min(totalDur, T0 + transDur + 0.3));
-    srcB.start(T0, Math.min(bStart, Math.max(0, b.buffer.duration - 0.1)));
+    var bOffset = Math.min(bStart, Math.max(0, b.buffer.duration - 0.1));
+    srcB.start(T0, bOffset);
+    if (chainB) {
+      applyStemEnv(chainB, b.analysis, T0, bOffset, (b.buffer.duration - bOffset) / rateB);
+    }
 
     // ---- House-Beat-Layer (Kick + Offbeat-Hats auf dem Ziel-Grid)
     if (opts.house) {

@@ -164,11 +164,41 @@
 
       <div class="adv-row adv-checks">
         <label class="check-inline">
+          <input type="checkbox" id="proMix" checked> 🧠 Pro-Mix (Phrasen-Sync, Stem-Staging, Vocal-Schutz)
+        </label>
+        <label class="check-inline">
           <input type="checkbox" id="bassSwap" checked> Bass-Swap (EQ-Übergabe am Drop)
         </label>
         <label class="check-inline">
           <input type="checkbox" id="skipIntro" checked> Intro von Deck B überspringen
         </label>
+      </div>
+
+      <div class="adv-row">
+        <label class="check-inline house-toggle">
+          <input type="checkbox" id="stemsToggle"> 🎚️ Stems steuern (Gesang · Drums · Bass · Instrumente)
+        </label>
+        <div class="stems-panel hidden" id="stemsPanel">
+          <p class="stems-note">DSP-basierte Stem-Näherung – regelt die Anteile pro Deck.
+            Der Pro-Mix automatisiert sie zusätzlich während des Übergangs.</p>
+          <div class="stems-grid">
+            <div class="stems-col">
+              <div class="stems-col-title" style="color:var(--accent-a)">Deck A</div>
+              <label class="stem-row">🎤 <input type="range" class="stem-slider" data-deck="a" data-stem="vocals" min="0" max="100" value="100"></label>
+              <label class="stem-row">🥁 <input type="range" class="stem-slider" data-deck="a" data-stem="drums" min="0" max="100" value="100"></label>
+              <label class="stem-row">🔊 <input type="range" class="stem-slider" data-deck="a" data-stem="bass" min="0" max="100" value="100"></label>
+              <label class="stem-row">🎹 <input type="range" class="stem-slider" data-deck="a" data-stem="instr" min="0" max="100" value="100"></label>
+            </div>
+            <div class="stems-col">
+              <div class="stems-col-title" style="color:var(--accent-b)">Deck B</div>
+              <label class="stem-row">🎤 <input type="range" class="stem-slider" data-deck="b" data-stem="vocals" min="0" max="100" value="100"></label>
+              <label class="stem-row">🥁 <input type="range" class="stem-slider" data-deck="b" data-stem="drums" min="0" max="100" value="100"></label>
+              <label class="stem-row">🔊 <input type="range" class="stem-slider" data-deck="b" data-stem="bass" min="0" max="100" value="100"></label>
+              <label class="stem-row">🎹 <input type="range" class="stem-slider" data-deck="b" data-stem="instr" min="0" max="100" value="100"></label>
+            </div>
+          </div>
+          <div class="stems-legend">🎤 Gesang · 🥁 Drums · 🔊 Bass · 🎹 Instrumente</div>
+        </div>
       </div>
 
       <div class="adv-row adv-house">

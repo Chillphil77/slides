@@ -252,6 +252,16 @@ audio { width: 100%; height: 44px; }
 .app-footer a { color: var(--text-dim); }
 .footer-tip { margin-top: 4px; }
 
+/* ---------------- Stems ---------------- */
+.stems-panel { margin-top: 10px; display: flex; flex-direction: column; gap: 10px; }
+.stems-note { font-size: 12px; color: var(--text-dim); line-height: 1.5; }
+.stems-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.stems-col { display: flex; flex-direction: column; gap: 8px; }
+.stems-col-title { font-size: 11px; font-weight: 800; letter-spacing: 1.5px; }
+.stem-row { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.stem-row input { flex: 1; }
+.stems-legend { font-size: 11px; color: var(--text-dim); }
+
 /* ---------------- Modus-Tabs ---------------- */
 .mode-tabs {
   display: flex; background: var(--bg-card); border: 1px solid var(--border);
