@@ -557,9 +557,11 @@
         .map(function (k) { return instNames[k]; });
       $('resultMeta').innerHTML =
         '<b>' + m.style + '</b> · ' + m.targetBpm + ' BPM' +
+        (m.stretch ? ' (Tempo ' + (m.stretch > 0 ? '+' : '') + m.stretch + ' %, Pitch unverändert)' : '') +
         (m.keyName ? ' · Tonart ' + m.keyName : '') +
         ' · Länge ' + formatTime(m.totalDuration) +
-        (instOn.length ? ' · Instrumente: ' + instOn.join(', ') : '');
+        (instOn.length ? ' · Instrumente: ' + instOn.join(', ') : '') +
+        (m.arrangement ? '<br>Arrangement: ' + m.arrangement : '');
 
       drawWaveform($('waveResult'), result.buffer, '#b721ff');
 
